@@ -118,7 +118,8 @@ def zipped_moodbot_model():
 
 @pytest.fixture(scope="session")
 def moodbot_domain():
-    return Domain.load_specification(MOODBOT_MODEL_PATH)
+    domain_path = os.path.join(MOODBOT_MODEL_PATH, 'domain.yml')
+    return Domain.load(domain_path)
 
 
 @pytest.fixture(scope="session")

@@ -80,7 +80,7 @@ def test_agent_with_model_server(tmpdir, zipped_moodbot_model,
             model_server=model_endpoint_config
     )
     assert agent.fingerprint == fingerprint
-    assert agent.domain.as_dict() == moodbot_domain
+    assert agent.domain.as_dict() == moodbot_domain.as_dict()
 
     agent_policies = set(utils.module_path_from_instance(p) for p in
                          agent.policy_ensemble.policies)
