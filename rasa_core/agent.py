@@ -8,16 +8,16 @@ import os
 import shutil
 import tempfile
 import time
+import typing
 import uuid
 import zipfile
 from threading import Thread
+from typing import Text, List, Optional, Callable, Any, Dict, Union
 
 import six
-import typing
 from gevent.pywsgi import WSGIServer
 from requests.exceptions import InvalidURL, RequestException
 from six import string_types
-from typing import Text, List, Optional, Callable, Any, Dict, Union
 
 import rasa_core
 from rasa_core import training, constants
@@ -33,7 +33,7 @@ from rasa_core.policies.ensemble import SimplePolicyEnsemble, PolicyEnsemble
 from rasa_core.policies.memoization import MemoizationPolicy
 from rasa_core.processor import MessageProcessor
 from rasa_core.tracker_store import InMemoryTrackerStore, TrackerStore
-from rasa_core.trackers import DialogueStateTracker, EventVerbosity
+from rasa_core.trackers import DialogueStateTracker
 from rasa_core.utils import EndpointConfig
 from rasa_nlu.utils import is_url
 
@@ -168,7 +168,8 @@ def _run_model_pulling_worker(model_server, wait_time_between_pulls, agent):
         time.sleep(wait_time_between_pulls)
 
 
-def start_model_pulling_in_worker(model_server, wait_time_between_pulls, agent):
+def start_model_pulling_in_worker(model_server, wait_time_between_pulls,
+                                  agent):
     # type: (EndpointConfig, int, Agent) -> None
 
     worker = Thread(target=_run_model_pulling_worker,
@@ -221,11 +222,11 @@ class Agent(object):
     def update_model(
             self,
             domain,  # type: Union[Text, Domain]
-            policies,  # type: Union[PolicyEnsemble, List[Policy], None]
+            policy_ensemble,  # type: PolicyEnsemble,
             fingerprint  # type: Optional[Text]
     ):
         self.domain = domain
-        self.policy_ensemble = self._create_ensemble(policies)
+        self.policy_ensemble = policy_ensemble
 
         self._set_fingerprint(fingerprint)
 
@@ -281,7 +282,8 @@ class Agent(object):
     def handle_message(
             self,
             message,  # type: UserMessage
-            message_preprocessor=None,  # type: Optional[Callable[[Text], Text]]
+            message_preprocessor=None,
+            # type: Optional[Callable[[Text], Text]]
             **kwargs
     ):
         # type: (...) -> Optional[List[Text]]
@@ -320,7 +322,8 @@ class Agent(object):
     def log_message(
             self,
             message,  # type: UserMessage
-            message_preprocessor=None,  # type: Optional[Callable[[Text], Text]]
+            message_preprocessor=None,
+            # type: Optional[Callable[[Text], Text]]
             **kwargs  # type: Any
     ):
         # type: (...) -> DialogueStateTracker
@@ -347,7 +350,8 @@ class Agent(object):
     def handle_text(
             self,
             text_message,  # type: Union[Text, Dict[Text, Any]]
-            message_preprocessor=None,  # type: Optional[Callable[[Text], Text]]
+            message_preprocessor=None,
+            # type: Optional[Callable[[Text], Text]]
             output_channel=None,  # type: Optional[OutputChannel]
             sender_id=UserMessage.DEFAULT_SENDER_ID  # type: Optional[Text]
     ):
