@@ -185,7 +185,6 @@ def train_dialogue_model(domain_file, stories_file, output_path,
     training_data = agent.load_data(stories_file, **data_load_args)
     agent.train(training_data, **kwargs)
     agent.persist(output_path, dump_flattened_stories)
-
     return agent
 
 
