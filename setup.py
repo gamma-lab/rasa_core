@@ -39,6 +39,7 @@ install_requires = [
     "graphviz~=0.9.0",
     "keras~=2.0",
     "tensorflow==1.10.0",
+    "torch==0.4.1",
     "h5py~=2.0",
     "apscheduler~=3.0",
     "tqdm~=4.0",
