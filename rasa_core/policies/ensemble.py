@@ -3,12 +3,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import importlib
 import io
 import json
 import logging
 import os
 import sys
-import datetime
+from datetime import datetime
 from collections import defaultdict
 
 import numpy as np
@@ -18,9 +19,14 @@ from typing import Text, Optional, Any, List, Dict, Tuple
 
 import rasa_core
 from rasa_core import utils, training, constants
+from rasa_core.constants import (
+    DEFAULT_NLU_FALLBACK_THRESHOLD,
+    DEFAULT_CORE_FALLBACK_THRESHOLD, DEFAULT_FALLBACK_ACTION)
 from rasa_core.events import SlotSet, ActionExecuted
 from rasa_core.exceptions import UnsupportedDialogueModelError
-from rasa_core.featurizers import MaxHistoryTrackerFeaturizer
+from rasa_core.featurizers import (MaxHistoryTrackerFeaturizer,
+                                   BinarySingleStateFeaturizer)
+from rasa_core.policies.keras_policy import KerasPolicy
 from rasa_core.policies.fallback import FallbackPolicy
 from rasa_core.policies.memoization import (MemoizationPolicy,
                                             AugmentedMemoizationPolicy)
@@ -67,7 +73,7 @@ class PolicyEnsemble(object):
             for policy in self.policies:
                 policy.train(training_trackers, domain, **kwargs)
             self.training_trackers = training_trackers
-            self.date_trained = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+            self.date_trained = datetime.now().strftime('%Y%m%d-%H%M%S')
         else:
             logger.info("Skipped training, because there are no "
                         "training samples.")
@@ -194,6 +200,47 @@ class PolicyEnsemble(object):
         ensemble = ensemble_cls(policies, fingerprints)
         return ensemble
 
+    @classmethod
+    def from_dict(cls, dictionary):
+        # type: (Dict[Text, Any]) -> List[Policy]
+
+        policies = []
+
+        for policy in dictionary.get('policies', []):
+
+            policy_name = policy.pop('name')
+
+            if policy_name == 'KerasPolicy':
+                policy_object = KerasPolicy(MaxHistoryTrackerFeaturizer(
+                                BinarySingleStateFeaturizer(),
+                                max_history=policy.get('max_history', 3)))
+            constr_func = utils.class_from_module_path(policy_name)
+
+            policy_object = constr_func(**policy)
+            policies.append(policy_object)
+
+        return policies
+
+    @classmethod
+    def default_policies(cls, fallback_args, max_history):
+        # type: (Dict[Text, Any], int) -> List[Policy]
+        """Load the default policy setup consisting of
+        FallbackPolicy, MemoizationPolicy and KerasPolicy."""
+
+        return [
+            FallbackPolicy(
+                    fallback_args.get("nlu_threshold",
+                                      DEFAULT_NLU_FALLBACK_THRESHOLD),
+                    fallback_args.get("core_threshold",
+                                      DEFAULT_CORE_FALLBACK_THRESHOLD),
+                    fallback_args.get("fallback_action_name",
+                                      DEFAULT_FALLBACK_ACTION)),
+            MemoizationPolicy(
+                    max_history=max_history),
+            KerasPolicy(
+                    MaxHistoryTrackerFeaturizer(BinarySingleStateFeaturizer(),
+                                                max_history=max_history))]
+
     def continue_training(self, trackers, domain, **kwargs):
         # type: (List[DialogueStateTracker], Domain, Any) -> None
 
@@ -206,9 +253,10 @@ class SimplePolicyEnsemble(PolicyEnsemble):
 
     @staticmethod
     def is_not_memo_policy(best_policy_name):
-        return not (best_policy_name.endswith("_" + MemoizationPolicy.__name__)
-                    or best_policy_name.endswith(
-                            "_" + AugmentedMemoizationPolicy.__name__))
+        return not (best_policy_name.endswith(
+            "_" + MemoizationPolicy.__name__) or
+                    best_policy_name.endswith(
+                    "_" + AugmentedMemoizationPolicy.__name__))
 
     def probabilities_using_best_policy(self, tracker, domain):
         # type: (DialogueStateTracker, Domain) -> Tuple[List[float], Text]

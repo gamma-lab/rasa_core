@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import tempfile
+from builtins import input, range, str
 from hashlib import sha1
 from random import Random
 from threading import Thread
@@ -20,7 +21,6 @@ from typing import Text, Any, List, Optional, Tuple, Dict, Set
 
 import requests
 import six
-from builtins import input, range, str
 from numpy import all, array
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import InvalidURL
@@ -73,6 +73,7 @@ def add_logging_option_arguments(parser):
     )
 
 
+# noinspection PyUnresolvedReferences
 def class_from_module_path(module_path):
     # type: (Text) -> Any
     """Given the module name and path of a class, tries to retrieve the class.
@@ -81,13 +82,17 @@ def class_from_module_path(module_path):
     import importlib
 
     # load the module, will raise ImportError if module cannot be loaded
+    from rasa_core.policies.keras_policy import KerasPolicy
+    from rasa_core.policies.fallback import FallbackPolicy
+    from rasa_core.policies.memoization import MemoizationPolicy
+
     if "." in module_path:
         module_name, _, class_name = module_path.rpartition('.')
         m = importlib.import_module(module_name)
         # get the class, will raise AttributeError if class cannot be found
         return getattr(m, class_name)
     else:
-        return globals()[module_path]
+        return globals().get(module_path, locals().get(module_path))
 
 
 def module_path_from_instance(inst):
@@ -464,6 +469,21 @@ def bool_arg(name, default=True):
     from flask import request
 
     return request.args.get(name, str(default)).lower() == 'true'
+
+
+def float_arg(name):
+    # type: ( Text) -> float
+    """Return a passed argument cast as a float or None.
+
+    Checks the `name` parameter of the request if it contains a valid
+    float value. If not, `None` is returned."""
+    from flask import request
+
+    arg = request.args.get(name)
+    try:
+        return float(arg)
+    except TypeError:
+        return None
 
 
 def extract_args(kwargs,  # type: Dict[Text, Any]
