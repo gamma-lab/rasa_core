@@ -77,6 +77,10 @@ You need to define three methods:
         return ["cuisine", "num_people", "outdoor_seating",
                 "preferences", "feedback"]
 
+    def validate_cuisine(self, value, dispatcher, tracker, domain):
+        """Optional method. Returns None if value is invalid."""
+        return value
+
     def submit(self, dispatcher, tracker, domain):
         # type: (CollectingDispatcher, Tracker, Dict[Text, Any]) -> List[Dict]
         """Define what the form has to do
@@ -175,6 +179,17 @@ list of supported cuisines.
         return ["caribbean", "chinese", "french", "greek", "indian",
                 "italian", "mexican"]
 
+    def validate_cuisine(self, value, dispatcher, tracker, domain):
+        """Validate cuisine value."""
+        if value.lower() in self.cuisine_db():
+            # validation succeeded
+            return value
+        else:
+            dispatcher.utter_template('utter_wrong_cuisine', tracker)
+            # validation failed, set this slot to None, meaning the
+            # user will be asked for the slot again
+            return None
+
     def validate(self, dispatcher, tracker, domain):
         # type: (CollectingDispatcher, Tracker, Dict[Text, Any]) -> List[Dict]
         """"Validate extracted requested slot else raise an error"""
@@ -201,19 +216,10 @@ list of supported cuisines.
                 validated_events.append(e)
 
         for slot in extracted_slots:
-            if slot_to_fill == 'cuisine':
-                if slot.lower() not in self.cuisine_db():
-                    dispatcher.utter_template('utter_wrong_cuisine', tracker)
-                    # validation failed, set this slot to None, meaning the
-                    user will be asked for the slot again
-                    validated_events.append(SlotSet(slot_to_fill, None))
-                else:
-                    # validation succeeded
-                    validated_events.append(SlotSet(slot_to_fill, slot))
-
-            else:
-                # no validation needed
-                validated_events.append(SlotSet(slot_to_fill, slot))
+            validation_func = getattr(self, "validate_{}".format(slot_to_fill),
+                                      lambda *x: value)
+            slot = validation_func(slot, dispatcher, tracker, domain)
+            validated_events.append(SlotSet(slot_to_fill, slot))
 
         return validated_events
 
