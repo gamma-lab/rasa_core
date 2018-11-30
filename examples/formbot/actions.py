@@ -81,6 +81,11 @@ class RestaurantForm(FormAction):
         except ValueError:
             return False
 
+    def validate_cuisine(self, value, dispatcher, tracker, domain):
+        # type: (Any, CollectingDispatcher, Tracker, Dict[Text, Any]) -> Any
+        """Validate cuisine slot, return None if its invalid."""
+        return value
+
     def validate(self, dispatcher, tracker, domain):
         # type: (CollectingDispatcher, Tracker, Dict[Text, Any]) -> List[Dict]
         """Validate extracted requested slot
@@ -93,8 +98,14 @@ class RestaurantForm(FormAction):
         # extract requested slot
         slot_to_fill = tracker.get_slot(REQUESTED_SLOT)
         if slot_to_fill:
-            slot_values.update(self.extract_requested_slot(dispatcher,
-                                                           tracker, domain))
+            for slot, value in self.extract_requested_slot(dispatcher,
+                                                           tracker,
+                                                           domain).items():
+                validate_func = getattr(self, "validate_{}".format(slot),
+                                        lambda *x: value)
+                slot_values[slot] = validate_func(value, dispatcher, tracker,
+                                                  domain)
+
             if not slot_values:
                 # reject form action execution
                 # if some slot was requested but nothing was extracted
