@@ -74,7 +74,7 @@ class RestaurantForm(FormAction):
     def validate_cuisine(self, value, dispatcher, tracker, domain):
         # type: (Any, CollectingDispatcher, Tracker, Dict[Text, Any]) -> Any
         """Validate cuisine slot, return None if its invalid."""
-        return value
+        return value if value.lower() in self.cuisine_db() else None
 
     def validate(self,
                  dispatcher: CollectingDispatcher,
