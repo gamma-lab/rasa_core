@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import logging
 
 from flask import Blueprint, request, jsonify
@@ -103,7 +98,7 @@ class TwilioInput(InputChannel):
                 except Exception as e:
                     logger.error("Exception when trying to handle "
                                  "message.{0}".format(e))
-                    logger.error(e, exc_info=True)
+                    logger.debug(e, exc_info=True)
                     if self.debug_mode:
                         raise
                     pass

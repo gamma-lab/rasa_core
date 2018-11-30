@@ -20,6 +20,18 @@ You can take a look at the FormAction base class by clicking this link:
 
 .. autoclass:: rasa_core_sdk.forms.FormAction
 
+Domain Format
+-------------
+
+To add your forms to the domain file, reference their **name**
+under ``forms:`` section:
+
+.. code-block:: yaml
+
+   forms:
+     - my_form
+     ...
+
 .. _section_form_basics:
 
 Basics
@@ -120,7 +132,7 @@ Here's an example for the restaurant bot:
 
 .. code-block:: python
 
-    def slot_mapping(self):
+    def slot_mappings(self):
         # type: () -> Dict[Text: Union[Text, Dict, List[Text, Dict]]]
         """A dictionary to map required slots to
             - an extracted entity

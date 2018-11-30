@@ -27,15 +27,14 @@ tests_requires = [
 
 install_requires = [
     "jsonpickle~=0.9.0",
-    "six~=1.0",
     "redis~=2.0",
     "fakeredis~=0.10.0",
     "pymongo~=3.5",
     "future~=0.16",
     "numpy~=1.14",
+    "scipy~=1.1",
     "typing~=3.0",
     "requests~=2.20",
-    "keras~=2.0",
     "tensorflow==1.10.0",
     "h5py~=2.0",
     "apscheduler~=3.0",
@@ -60,7 +59,6 @@ install_requires = [
     "jsonschema~=2.6",
     "packaging~=17.0",
     "gevent~=1.2",
-    "pyyaml~=3.12",
     "pytz~=2018.4",
     "python-dateutil~=2.7",
     "rasa_nlu~=0.13.0",
@@ -86,7 +84,6 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         # supported python versions
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries",
