@@ -178,7 +178,7 @@ Validating user input
 After extracting a slot value from user input, the form will try to validate the 
 value of the slot. By default, this only checks if the requested slot was extracted.
 If you want to add custom validation, for example to check a value against a database, 
-you can do this by overwriting the ``validate()`` method. 
+you can do this by writing ``validate_{slot}()`` method.
 Here is an example which checks if the extracted cuisine slot belongs to a 
 list of supported cuisines.
 
@@ -201,39 +201,6 @@ list of supported cuisines.
             # validation failed, set this slot to None, meaning the
             # user will be asked for the slot again
             return None
-
-    def validate(self, dispatcher, tracker, domain):
-        # type: (CollectingDispatcher, Tracker, Dict[Text, Any]) -> List[Dict]
-        """"Validate extracted requested slot else raise an error"""
-        slot_to_fill = tracker.get_slot(REQUESTED_SLOT)
-
-        # extract requested slot from a user input by using `slot_mappings`
-        events = self.extract(dispatcher, tracker, domain)
-        if events is None:
-            # raise an error if nothing was extracted
-            raise ActionExecutionRejection(self.name(),
-                                           "Failed to validate slot {0} "
-                                           "with action {1}"
-                                           "".format(slot_to_fill,
-                                                     self.name()))
-
-        extracted_slots = []
-        validated_events = []
-        for e in events:
-            if e['event'] == 'slot':
-                # get values of extracted slots to validate them later
-                extracted_slots.append(e['value'])
-            else:
-                # add other events without validating them
-                validated_events.append(e)
-
-        for slot in extracted_slots:
-            validation_func = getattr(self, "validate_{}".format(slot_to_fill),
-                                      lambda *x: value)
-            slot = validation_func(slot, dispatcher, tracker, domain)
-            validated_events.append(SlotSet(slot_to_fill, slot))
-
-        return validated_events
 
 If nothing is extracted from the user's utterance for any of the required slots, an
 ``ActionExecutionRejection`` error will be raised, meaning the action execution
