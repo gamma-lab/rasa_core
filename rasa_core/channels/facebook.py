@@ -36,6 +36,13 @@ class Messenger(BaseMessenger):
                 message['message']['attachments'][0]['type'] == 'audio')
 
     @staticmethod
+    def _is_attachment_message(message: Dict[Text, Any]) -> bool:
+        """Check if the users message is a message with an attachment."""
+        return (message.get('message') and
+                message['message'].get('attachments') and
+                len(message['message']['attachments']))
+
+    @staticmethod
     def _is_user_message(message: Dict[Text, Any]) -> bool:
         """Check if the message is a message from the user"""
         return (message.get('message') and
@@ -48,6 +55,9 @@ class Messenger(BaseMessenger):
         if self._is_user_message(message):
             text = message['message']['text']
         elif self._is_audio_message(message):
+            attachment = message['message']['attachments'][0]
+            text = attachment['payload']['url']
+        elif self._is_attachment_message(message):
             attachment = message['message']['attachments'][0]
             text = attachment['payload']['url']
         else:
