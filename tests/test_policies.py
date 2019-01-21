@@ -10,7 +10,6 @@ from rasa_core.actions.action import (ACTION_LISTEN_NAME,
                                       ACTION_DEFAULT_ASK_REPHRASE_NAME,
                                       ACTION_DEFAULT_FALLBACK_NAME)
 from rasa_core.channels import UserMessage
-from rasa_core.constants import USER_INTENT_AFFIRM, USER_INTENT_DENY
 from rasa_core.domain import Domain, InvalidDomain
 from rasa_core.events import ActionExecuted
 from rasa_core.featurizers import (
@@ -85,7 +84,7 @@ class PolicyTestCollection(object):
         probabilities = trained_policy.predict_action_probabilities(
             tracker, default_domain)
         assert len(probabilities) == default_domain.num_actions
-        assert max(probabilities) <= 1.0
+        assert max(probabilities) <= 1.1
         assert min(probabilities) >= 0.0
 
     def test_persist_and_load_empty_policy(self, tmpdir):
@@ -111,22 +110,21 @@ class TestFallbackPolicy(PolicyTestCollection):
         return p
 
     @pytest.mark.parametrize(
-        "nlu_confidence, prev_action_is_fallback, should_fallback",
+        "nlu_confidence, last_action_name, should_nlu_fallback",
         [
-            (0.1, True, False),
-            (0.1, False, True),
-            (0.9, True, False),
-            (0.9, False, False),
+            (0.1, 'some_action', False),
+            (0.1, 'action_listen', True),
+            (0.9, 'some_action', False),
+            (0.9, 'action_listen', False),
         ])
-    def test_something(self,
-                       trained_policy,
-                       nlu_confidence,
-                       prev_action_is_fallback,
-                       should_fallback):
-        last_action_name = trained_policy.fallback_action_name if \
-            prev_action_is_fallback else 'not_fallback'
-        assert trained_policy.should_fallback(
-            nlu_confidence, last_action_name) is should_fallback
+    def test_should_nlu_fallback(self,
+                                 trained_policy,
+                                 nlu_confidence,
+                                 last_action_name,
+                                 should_nlu_fallback):
+
+        assert trained_policy.should_nlu_fallback(
+            nlu_confidence, last_action_name) is should_nlu_fallback
 
 
 class TestMemoizationPolicy(PolicyTestCollection):
@@ -435,7 +433,7 @@ class TestTwoStageFallbackPolicy(PolicyTestCollection):
 
     @pytest.fixture(scope="module")
     def create_policy(self, featurizer):
-        p = TwoStageFallbackPolicy()
+        p = TwoStageFallbackPolicy(deny_suggestion_intent_name='deny')
         return p
 
     @pytest.fixture(scope="class")
@@ -483,7 +481,7 @@ class TestTwoStageFallbackPolicy(PolicyTestCollection):
                   user_uttered('greet', 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_AFFIRM, 1)]
+                  user_uttered('greet', 1)]
 
         tracker = self._get_tracker_after_reverts(events,
                                                   default_dispatcher_collecting,
@@ -500,7 +498,7 @@ class TestTwoStageFallbackPolicy(PolicyTestCollection):
                   user_uttered("greet", 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_DENY, 1)]
+                  user_uttered('deny', 1)]
 
         next_action = self._get_next_action(trained_policy, events,
                                             default_domain)
@@ -514,7 +512,7 @@ class TestTwoStageFallbackPolicy(PolicyTestCollection):
                   user_uttered("greet", 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_DENY, 1),
+                  user_uttered('deny', 1),
                   ActionExecuted(ACTION_DEFAULT_ASK_REPHRASE_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
                   user_uttered("bye", 1),
@@ -532,7 +530,7 @@ class TestTwoStageFallbackPolicy(PolicyTestCollection):
                   user_uttered("greet", 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_DENY, 1),
+                  user_uttered('deny', 1),
                   ActionExecuted(ACTION_DEFAULT_ASK_REPHRASE_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
                   user_uttered("greet", 0.2),
@@ -550,13 +548,13 @@ class TestTwoStageFallbackPolicy(PolicyTestCollection):
                   user_uttered("greet", 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_DENY, 1),
+                  user_uttered('deny', 1),
                   ActionExecuted(ACTION_DEFAULT_ASK_REPHRASE_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
                   user_uttered("bye", 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_AFFIRM, 1)
+                  user_uttered('bye', 1)
                   ]
 
         tracker = self._get_tracker_after_reverts(events,
@@ -572,13 +570,13 @@ class TestTwoStageFallbackPolicy(PolicyTestCollection):
                   user_uttered("greet", 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_DENY, 1),
+                  user_uttered('deny', 1),
                   ActionExecuted(ACTION_DEFAULT_ASK_REPHRASE_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
                   user_uttered("bye", 0.2),
                   ActionExecuted(ACTION_DEFAULT_ASK_AFFIRMATION_NAME),
                   ActionExecuted(ACTION_LISTEN_NAME),
-                  user_uttered(USER_INTENT_DENY, 1)
+                  user_uttered('deny', 1)
                   ]
 
         next_action = self._get_next_action(trained_policy, events,
